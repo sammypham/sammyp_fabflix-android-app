@@ -1,36 +1,29 @@
-package edu.uci.ics.fabflixmobile.ui.movielist;
+package edu.uci.ics.fabflixmobile.ui.singlemovie;
 
 import android.annotation.SuppressLint;
-import android.graphics.Color;
-import android.util.Log;
-import android.widget.ListView;
-import android.widget.Toast;
-
-import androidx.appcompat.app.AppCompatActivity;
-
+import android.content.Intent;
 import android.os.Bundle;
-
+import android.util.Log;
+import android.view.View;
+import android.widget.Button;
+import android.widget.ListView;
+import android.widget.TextView;
+import android.widget.Toast;
+import androidx.appcompat.app.AppCompatActivity;
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.toolbox.StringRequest;
 import edu.uci.ics.fabflixmobile.R;
 import edu.uci.ics.fabflixmobile.data.NetworkManager;
 import edu.uci.ics.fabflixmobile.data.model.Movie;
-import android.content.Intent;
-import android.widget.Button;
-import android.widget.TextView;
-import android.view.View;
 import edu.uci.ics.fabflixmobile.ui.home.MovieSearchActivity;
-import edu.uci.ics.fabflixmobile.ui.login.LoginActivity;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
 
-public class MovieListActivity extends AppCompatActivity {
+public class SingleMovieActivity extends AppCompatActivity {
 
     private final String host = "10.0.2.2";
     private final String port = "8080";
@@ -39,120 +32,21 @@ public class MovieListActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_movielist);
+        setContentView(R.layout.activity_singlemovie);
 
         Intent intent = getIntent();
 
         // TODO: this should be retrieved from the backend server
         final RequestQueue queue = NetworkManager.sharedManager(this).queue;
 
-        TextView pageNum = findViewById(R.id.pagenumber);
-        Button nextButton = findViewById(R.id.nextpage);
-        Button backButton = findViewById(R.id.backpage);
-        Button homeButton = findViewById(R.id.searchhome);
+        TextView movieTitle = findViewById(R.id.single_movie_title);
+        TextView movieDirector = findViewById(R.id.single_movie_director);
+        TextView movieGenres = findViewById(R.id.single_movie_genres);
+        TextView movieStars = findViewById(R.id.single_movie_stars);
 
-        homeButton.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
-                Intent SearchPage = new Intent(MovieListActivity.this, MovieSearchActivity.class);
-                // activate the list page.
-                startActivity(SearchPage);
-            }
-        });
-
-        pageNum.setText(intent.getStringExtra("page"));
-
-        final StringRequest listRequest = new StringRequest(
-                Request.Method.GET,
-                baseURL + "/api/list" + "?title=" + intent.getStringExtra("title") + "&year=&director=&star=&quantity=10&sort=0&page=" + intent.getStringExtra("page"),
-                response -> {
-                    // TODO: should parse the json response to redirect to appropriate functions
-                    //  upon different response value.
-                    Log.d("list.success", response);
-
-                    final ArrayList<Movie> movies = new ArrayList<>();
-
-                    try {
-                        JSONArray jsonArray = new JSONArray(response);
-
-                        if (jsonArray.length() == 10) {
-                            nextButton.setOnClickListener(new View.OnClickListener() {
-                                public void onClick(View v) {
-                                    Intent listPage = new Intent(MovieListActivity.this, MovieListActivity.class);
-
-                                    listPage.putExtra("title", intent.getStringExtra("title"));
-                                    listPage.putExtra("page", Integer.toString(Integer.parseInt(intent.getStringExtra("page")) + 1));
-
-                                    startActivity(listPage);
-                                }
-                            });
-                        } else {
-                            nextButton.setEnabled(false);
-                        }
-
-                        if (Integer.parseInt(intent.getStringExtra("page")) <= 1) {
-                            backButton.setEnabled(false);
-                        } else {
-                            backButton.setOnClickListener(new View.OnClickListener() {
-                                public void onClick(View v) {
-                                    Intent listPage = new Intent(MovieListActivity.this, MovieListActivity.class);
-
-                                    listPage.putExtra("title", intent.getStringExtra("title"));
-                                    listPage.putExtra("page", Integer.toString(Integer.parseInt(intent.getStringExtra("page")) - 1));
-
-                                    startActivity(listPage);
-                                }
-                            });
-                        }
-
-                        for (int i = 0; i < jsonArray.length(); i++) {
-                            JSONObject movie = (JSONObject) jsonArray.get(i);
-
-                            String movie_id = (String) movie.get("movie_id");
-                            String movie_title = (String) movie.get("movie_title");
-                            Integer movie_year = Integer.parseInt((String) movie.get("movie_year"));
-                            String movie_director = (String) movie.get("movie_director");
-
-                            String[] genreList = movie.get("movie_genres").toString().split(",");
-                            String movie_genres = "";
-
-                            for (int j = 0; j < Math.min(3, genreList.length); j++) {
-                                movie_genres += genreList[j].split(":")[0] + ",";
-                            }
-
-                            movie_genres = movie_genres.substring(0, movie_genres.length() - 1);
-
-                            String[] starList = movie.get("movie_stars").toString().split(",");
-                            String movie_stars = "";
-
-                            for (int j = 0; j < Math.min(3, starList.length); j++) {
-                                movie_stars += starList[j].split(":")[0] + ",";
-                            }
-
-                            movie_stars = movie_stars.substring(0, movie_stars.length() - 1);
-
-                            movies.add(new Movie(movie_id, movie_title, movie_year, movie_director, movie_genres, movie_stars));
-                        }
-
-                        MovieListViewAdapter adapter = new MovieListViewAdapter(this, movies);
-                        ListView listView = findViewById(R.id.list);
-                        listView.setAdapter(adapter);
-                        listView.setOnItemClickListener((parent, view, position, id) -> {
-                            Movie movie = movies.get(position);
-                            @SuppressLint("DefaultLocale") String message = String.format("Clicked on position: %d, name: %s, id: %s", position, movie.getName(), movie.getId());
-                            Toast.makeText(getApplicationContext(), message, Toast.LENGTH_SHORT).show();
-                        });
-
-                    } catch (JSONException e) {
-                        e.printStackTrace();
-                    }
-
-                },
-                error -> {
-                    System.out.println(2);
-                    // error
-                    Log.d("list.error", error.toString());
-                });
-
-        queue.add(listRequest);
+        movieTitle.setText(intent.getStringExtra("title"));
+        movieDirector.setText("Director: " + intent.getStringExtra("director"));
+        movieGenres.setText("Genres: " + intent.getStringExtra("genres"));
+        movieStars.setText("Stars: " + intent.getStringExtra("stars"));
     }
 }

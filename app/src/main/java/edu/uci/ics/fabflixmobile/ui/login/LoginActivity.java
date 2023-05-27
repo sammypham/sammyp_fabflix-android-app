@@ -2,6 +2,7 @@ package edu.uci.ics.fabflixmobile.ui.login;
 
 import android.annotation.SuppressLint;
 import android.content.Intent;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.Button;
@@ -13,9 +14,12 @@ import com.android.volley.RequestQueue;
 import com.android.volley.toolbox.StringRequest;
 import edu.uci.ics.fabflixmobile.data.NetworkManager;
 import edu.uci.ics.fabflixmobile.databinding.ActivityLoginBinding;
+import edu.uci.ics.fabflixmobile.ui.home.MovieSearchActivity;
 import edu.uci.ics.fabflixmobile.ui.movielist.MovieListActivity;
 import java.util.HashMap;
 import java.util.Map;
+import org.json.JSONObject;
+import org.json.JSONException;
 
 public class LoginActivity extends AppCompatActivity {
 
@@ -29,8 +33,10 @@ public class LoginActivity extends AppCompatActivity {
      */
     private final String host = "10.0.2.2";
     private final String port = "8080";
-    private final String domain = "cs122b_project2_login_cart_example_war";
+    private final String domain = "cs122b_project1_war";
     private final String baseURL = "http://" + host + ":" + port + "/" + domain;
+
+//    AndroidNetworking.initialize(applicationContext);
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -57,17 +63,33 @@ public class LoginActivity extends AppCompatActivity {
         // request type is POST
         final StringRequest loginRequest = new StringRequest(
                 Request.Method.POST,
-                baseURL + "/api/login",
+                baseURL + "/api/mobile-login",
                 response -> {
                     // TODO: should parse the json response to redirect to appropriate functions
                     //  upon different response value.
                     Log.d("login.success", response);
-                    //Complete and destroy login activity once successful
-                    finish();
-                    // initialize the activity(page)/destination
-                    Intent MovieListPage = new Intent(LoginActivity.this, MovieListActivity.class);
-                    // activate the list page.
-                    startActivity(MovieListPage);
+
+                    try {
+                        JSONObject jsonObject = new JSONObject(response);
+
+                        if (jsonObject.get("message").equals("success")) {
+                            //Complete and destroy login activity once successful
+                            finish();
+                            // initialize the activity(page)/destination
+                            Intent SearchPage = new Intent(LoginActivity.this, MovieSearchActivity.class);
+                            // activate the list page.
+                            startActivity(SearchPage);
+                        } else {
+                            System.out.println(jsonObject.get("message"));
+
+                            message.setText("Invalid Login!");
+                            message.setTextColor(Color.RED);
+                        }
+
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+
                 },
                 error -> {
                     // error
